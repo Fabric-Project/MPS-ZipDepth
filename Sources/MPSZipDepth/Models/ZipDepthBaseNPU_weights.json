@@ -1,0 +1,2091 @@
+{
+  "decoder.convex_up.where_conv.0.weight": {
+    "count": 512,
+    "dtype": "float32",
+    "offset": 6800224,
+    "shape": [
+      16,
+      32,
+      1,
+      1
+    ]
+  },
+  "decoder.convex_up.where_conv.1.bias": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6800752,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.1.running_mean": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6800768,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.1.running_var": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6800784,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.1.weight": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6800736,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.3.weight": {
+    "count": 400,
+    "dtype": "float32",
+    "offset": 6800800,
+    "shape": [
+      16,
+      1,
+      5,
+      5
+    ]
+  },
+  "decoder.convex_up.where_conv.4.bias": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6801216,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.4.running_mean": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6801232,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.4.running_var": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6801248,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.4.weight": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6801200,
+    "shape": [
+      16
+    ]
+  },
+  "decoder.convex_up.where_conv.6.weight": {
+    "count": 16,
+    "dtype": "float32",
+    "offset": 6801264,
+    "shape": [
+      1,
+      16,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse1.bn.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6798559,
+    "shape": [
+      96
+    ]
+  },
+  "decoder.fuse1.bn.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6798655,
+    "shape": [
+      96
+    ]
+  },
+  "decoder.fuse1.bn.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6798751,
+    "shape": [
+      96
+    ]
+  },
+  "decoder.fuse1.bn.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6798463,
+    "shape": [
+      96
+    ]
+  },
+  "decoder.fuse1.proj_high.weight": {
+    "count": 1152,
+    "dtype": "float32",
+    "offset": 6793855,
+    "shape": [
+      96,
+      12,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse1.proj_low.weight": {
+    "count": 3456,
+    "dtype": "float32",
+    "offset": 6795007,
+    "shape": [
+      96,
+      36,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse2.bn.bias": {
+    "count": 144,
+    "dtype": "float32",
+    "offset": 6793423,
+    "shape": [
+      144
+    ]
+  },
+  "decoder.fuse2.bn.running_mean": {
+    "count": 144,
+    "dtype": "float32",
+    "offset": 6793567,
+    "shape": [
+      144
+    ]
+  },
+  "decoder.fuse2.bn.running_var": {
+    "count": 144,
+    "dtype": "float32",
+    "offset": 6793711,
+    "shape": [
+      144
+    ]
+  },
+  "decoder.fuse2.bn.weight": {
+    "count": 144,
+    "dtype": "float32",
+    "offset": 6793279,
+    "shape": [
+      144
+    ]
+  },
+  "decoder.fuse2.proj_high.weight": {
+    "count": 3456,
+    "dtype": "float32",
+    "offset": 6782911,
+    "shape": [
+      144,
+      24,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse2.proj_low.weight": {
+    "count": 6912,
+    "dtype": "float32",
+    "offset": 6786367,
+    "shape": [
+      144,
+      48,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse3.bn.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 6782335,
+    "shape": [
+      192
+    ]
+  },
+  "decoder.fuse3.bn.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 6782527,
+    "shape": [
+      192
+    ]
+  },
+  "decoder.fuse3.bn.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 6782719,
+    "shape": [
+      192
+    ]
+  },
+  "decoder.fuse3.bn.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 6782143,
+    "shape": [
+      192
+    ]
+  },
+  "decoder.fuse3.proj_high.weight": {
+    "count": 9216,
+    "dtype": "float32",
+    "offset": 6759103,
+    "shape": [
+      192,
+      48,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse3.proj_low.weight": {
+    "count": 13824,
+    "dtype": "float32",
+    "offset": 6768319,
+    "shape": [
+      192,
+      72,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse_half.bn.bias": {
+    "count": 32,
+    "dtype": "float32",
+    "offset": 6799839,
+    "shape": [
+      32
+    ]
+  },
+  "decoder.fuse_half.bn.running_mean": {
+    "count": 32,
+    "dtype": "float32",
+    "offset": 6799871,
+    "shape": [
+      32
+    ]
+  },
+  "decoder.fuse_half.bn.running_var": {
+    "count": 32,
+    "dtype": "float32",
+    "offset": 6799903,
+    "shape": [
+      32
+    ]
+  },
+  "decoder.fuse_half.bn.weight": {
+    "count": 32,
+    "dtype": "float32",
+    "offset": 6799807,
+    "shape": [
+      32
+    ]
+  },
+  "decoder.fuse_half.proj_high.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 6798847,
+    "shape": [
+      32,
+      6,
+      1,
+      1
+    ]
+  },
+  "decoder.fuse_half.proj_low.weight": {
+    "count": 768,
+    "dtype": "float32",
+    "offset": 6799039,
+    "shape": [
+      32,
+      24,
+      1,
+      1
+    ]
+  },
+  "decoder.head_half.bias": {
+    "count": 1,
+    "dtype": "float32",
+    "offset": 6800223,
+    "shape": [
+      1
+    ]
+  },
+  "decoder.head_half.weight": {
+    "count": 288,
+    "dtype": "float32",
+    "offset": 6799935,
+    "shape": [
+      1,
+      32,
+      3,
+      3
+    ]
+  },
+  "decoder.proj4.bn.bias": {
+    "count": 288,
+    "dtype": "float32",
+    "offset": 6758239,
+    "shape": [
+      288
+    ]
+  },
+  "decoder.proj4.bn.running_mean": {
+    "count": 288,
+    "dtype": "float32",
+    "offset": 6758527,
+    "shape": [
+      288
+    ]
+  },
+  "decoder.proj4.bn.running_var": {
+    "count": 288,
+    "dtype": "float32",
+    "offset": 6758815,
+    "shape": [
+      288
+    ]
+  },
+  "decoder.proj4.bn.weight": {
+    "count": 288,
+    "dtype": "float32",
+    "offset": 6757951,
+    "shape": [
+      288
+    ]
+  },
+  "decoder.proj4.conv.weight": {
+    "count": 110592,
+    "dtype": "float32",
+    "offset": 6647359,
+    "shape": [
+      288,
+      384,
+      1,
+      1
+    ]
+  },
+  "encoder.cross_scale.high_to_low.weight": {
+    "count": 18432,
+    "dtype": "float32",
+    "offset": 6628927,
+    "shape": [
+      384,
+      48,
+      1,
+      1
+    ]
+  },
+  "encoder.cross_scale.low_to_high.weight": {
+    "count": 18432,
+    "dtype": "float32",
+    "offset": 6610495,
+    "shape": [
+      192,
+      96,
+      1,
+      1
+    ]
+  },
+  "encoder.down2.branch_1x1.0.weight": {
+    "count": 4608,
+    "dtype": "float32",
+    "offset": 100014,
+    "shape": [
+      96,
+      48,
+      1,
+      1
+    ]
+  },
+  "encoder.down2.branch_1x1.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 104718,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_1x1.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 104814,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_1x1.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 104910,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_1x1.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 104622,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_3x3.0.weight": {
+    "count": 41472,
+    "dtype": "float32",
+    "offset": 58158,
+    "shape": [
+      96,
+      48,
+      3,
+      3
+    ]
+  },
+  "encoder.down2.branch_3x3.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 99726,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_3x3.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 99822,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_3x3.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 99918,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down2.branch_3x3.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 99630,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.down3.branch_1x1.0.weight": {
+    "count": 18432,
+    "dtype": "float32",
+    "offset": 460110,
+    "shape": [
+      192,
+      96,
+      1,
+      1
+    ]
+  },
+  "encoder.down3.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 478734,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 478926,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 479118,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 478542,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_3x3.0.weight": {
+    "count": 165888,
+    "dtype": "float32",
+    "offset": 293454,
+    "shape": [
+      192,
+      96,
+      3,
+      3
+    ]
+  },
+  "encoder.down3.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 459534,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 459726,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 459918,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down3.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 459342,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.down4.branch_1x1.0.weight": {
+    "count": 73728,
+    "dtype": "float32",
+    "offset": 3393727,
+    "shape": [
+      384,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.down4.branch_1x1.1.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3467839,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_1x1.1.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3468223,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_1x1.1.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3468607,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_1x1.1.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3467455,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_3x3.0.weight": {
+    "count": 663552,
+    "dtype": "float32",
+    "offset": 2728639,
+    "shape": [
+      384,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.down4.branch_3x3.1.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3392575,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_3x3.1.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3392959,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_3x3.1.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3393343,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.down4.branch_3x3.1.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 3392191,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.spp.cv1.bn.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6461215,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.spp.cv1.bn.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6461311,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.spp.cv1.bn.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6461407,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.spp.cv1.bn.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 6461119,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.spp.cv1.conv.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 6424255,
+    "shape": [
+      96,
+      384,
+      1,
+      1
+    ]
+  },
+  "encoder.spp.cv2.bn.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6609343,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.spp.cv2.bn.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6609727,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.spp.cv2.bn.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6610111,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.spp.cv2.bn.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6608959,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.spp.cv2.conv.weight": {
+    "count": 147456,
+    "dtype": "float32",
+    "offset": 6461503,
+    "shape": [
+      384,
+      384,
+      1,
+      1
+    ]
+  },
+  "encoder.stage1.0.branch_1x1.0.weight": {
+    "count": 2304,
+    "dtype": "float32",
+    "offset": 32238,
+    "shape": [
+      48,
+      48,
+      1,
+      1
+    ]
+  },
+  "encoder.stage1.0.branch_1x1.1.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 34590,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_1x1.1.running_mean": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 34638,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_1x1.1.running_var": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 34686,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_1x1.1.weight": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 34542,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_3x3.0.weight": {
+    "count": 20736,
+    "dtype": "float32",
+    "offset": 11310,
+    "shape": [
+      48,
+      48,
+      3,
+      3
+    ]
+  },
+  "encoder.stage1.0.branch_3x3.1.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 32094,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_3x3.1.running_mean": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 32142,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_3x3.1.running_var": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 32190,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.0.branch_3x3.1.weight": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 32046,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_1x1.0.weight": {
+    "count": 2304,
+    "dtype": "float32",
+    "offset": 55662,
+    "shape": [
+      48,
+      48,
+      1,
+      1
+    ]
+  },
+  "encoder.stage1.1.branch_1x1.1.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 58014,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_1x1.1.running_mean": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 58062,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_1x1.1.running_var": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 58110,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_1x1.1.weight": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 57966,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_3x3.0.weight": {
+    "count": 20736,
+    "dtype": "float32",
+    "offset": 34734,
+    "shape": [
+      48,
+      48,
+      3,
+      3
+    ]
+  },
+  "encoder.stage1.1.branch_3x3.1.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 55518,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_3x3.1.running_mean": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 55566,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_3x3.1.running_var": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 55614,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage1.1.branch_3x3.1.weight": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 55470,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage2.0.branch_1x1.0.weight": {
+    "count": 9216,
+    "dtype": "float32",
+    "offset": 188334,
+    "shape": [
+      96,
+      96,
+      1,
+      1
+    ]
+  },
+  "encoder.stage2.0.branch_1x1.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 197646,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_1x1.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 197742,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_1x1.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 197838,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_1x1.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 197550,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_3x3.0.weight": {
+    "count": 82944,
+    "dtype": "float32",
+    "offset": 105006,
+    "shape": [
+      96,
+      96,
+      3,
+      3
+    ]
+  },
+  "encoder.stage2.0.branch_3x3.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 188046,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_3x3.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 188142,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_3x3.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 188238,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.0.branch_3x3.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 187950,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_1x1.0.weight": {
+    "count": 9216,
+    "dtype": "float32",
+    "offset": 281262,
+    "shape": [
+      96,
+      96,
+      1,
+      1
+    ]
+  },
+  "encoder.stage2.1.branch_1x1.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 290574,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_1x1.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 290670,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_1x1.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 290766,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_1x1.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 290478,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_3x3.0.weight": {
+    "count": 82944,
+    "dtype": "float32",
+    "offset": 197934,
+    "shape": [
+      96,
+      96,
+      3,
+      3
+    ]
+  },
+  "encoder.stage2.1.branch_3x3.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 280974,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_3x3.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 281070,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_3x3.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 281166,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.1.branch_3x3.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 280878,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.2.bn.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 292686,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.2.bn.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 292782,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.2.bn.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 292878,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.2.bn.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 292590,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.2.branch1.weight": {
+    "count": 864,
+    "dtype": "float32",
+    "offset": 290862,
+    "shape": [
+      96,
+      1,
+      3,
+      3
+    ]
+  },
+  "encoder.stage2.2.branch2.weight": {
+    "count": 864,
+    "dtype": "float32",
+    "offset": 291726,
+    "shape": [
+      96,
+      1,
+      3,
+      3
+    ]
+  },
+  "encoder.stage2.3.gate_conv.0.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 292974,
+    "shape": [
+      96,
+      1,
+      1,
+      1
+    ]
+  },
+  "encoder.stage2.3.gate_conv.1.bias": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 293166,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.3.gate_conv.1.running_mean": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 293262,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.3.gate_conv.1.running_var": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 293358,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage2.3.gate_conv.1.weight": {
+    "count": 96,
+    "dtype": "float32",
+    "offset": 293070,
+    "shape": [
+      96
+    ]
+  },
+  "encoder.stage3.0.branch_1x1.0.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 811854,
+    "shape": [
+      192,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.0.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 848910,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 849102,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 849294,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 848718,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_3x3.0.weight": {
+    "count": 331776,
+    "dtype": "float32",
+    "offset": 479310,
+    "shape": [
+      192,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.stage3.0.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 811278,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 811470,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 811662,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.0.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 811086,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_1x1.0.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 1182030,
+    "shape": [
+      192,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.1.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1219086,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1219278,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1219470,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1218894,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_3x3.0.weight": {
+    "count": 331776,
+    "dtype": "float32",
+    "offset": 849486,
+    "shape": [
+      192,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.stage3.1.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1181454,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1181646,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1181838,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.1.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1181262,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_1x1.0.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 1552206,
+    "shape": [
+      192,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.2.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1589262,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1589454,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1589646,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1589070,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_3x3.0.weight": {
+    "count": 331776,
+    "dtype": "float32",
+    "offset": 1219662,
+    "shape": [
+      192,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.stage3.2.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1551630,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1551822,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1552014,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.2.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1551438,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_1x1.0.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 1922382,
+    "shape": [
+      192,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.3.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1959438,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1959630,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1959822,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1959246,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_3x3.0.weight": {
+    "count": 331776,
+    "dtype": "float32",
+    "offset": 1589838,
+    "shape": [
+      192,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.stage3.3.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1921806,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1921998,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1922190,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.3.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 1921614,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_1x1.0.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 2292558,
+    "shape": [
+      192,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.4.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2329614,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2329806,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2329998,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2329422,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_3x3.0.weight": {
+    "count": 331776,
+    "dtype": "float32",
+    "offset": 1960014,
+    "shape": [
+      192,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.stage3.4.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2291982,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2292174,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2292366,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.4.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2291790,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_1x1.0.weight": {
+    "count": 36864,
+    "dtype": "float32",
+    "offset": 2662734,
+    "shape": [
+      192,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.5.branch_1x1.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2699790,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_1x1.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2699982,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_1x1.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2700174,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_1x1.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2699598,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_3x3.0.weight": {
+    "count": 331776,
+    "dtype": "float32",
+    "offset": 2330190,
+    "shape": [
+      192,
+      192,
+      3,
+      3
+    ]
+  },
+  "encoder.stage3.5.branch_3x3.1.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2662158,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_3x3.1.running_mean": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2662350,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_3x3.1.running_var": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2662542,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.5.branch_3x3.1.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2661966,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.6.fc.0.weight": {
+    "count": 4608,
+    "dtype": "float32",
+    "offset": 2700366,
+    "shape": [
+      24,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.6.fc.2.weight": {
+    "count": 4608,
+    "dtype": "float32",
+    "offset": 2704974,
+    "shape": [
+      192,
+      24,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.7.context_weight.bias": {
+    "count": 1,
+    "dtype": "float32",
+    "offset": 2709774,
+    "shape": [
+      1
+    ]
+  },
+  "encoder.stage3.7.context_weight.weight": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2709582,
+    "shape": [
+      1,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.7.transform.0.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 2718991,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage3.7.transform.0.weight": {
+    "count": 9216,
+    "dtype": "float32",
+    "offset": 2709775,
+    "shape": [
+      48,
+      192,
+      1,
+      1
+    ]
+  },
+  "encoder.stage3.7.transform.1.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 2719087,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage3.7.transform.1.running_mean": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 2719135,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage3.7.transform.1.running_var": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 2719183,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage3.7.transform.1.weight": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 2719039,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stage3.7.transform.3.bias": {
+    "count": 192,
+    "dtype": "float32",
+    "offset": 2728447,
+    "shape": [
+      192
+    ]
+  },
+  "encoder.stage3.7.transform.3.weight": {
+    "count": 9216,
+    "dtype": "float32",
+    "offset": 2719231,
+    "shape": [
+      192,
+      48,
+      1,
+      1
+    ]
+  },
+  "encoder.stage4.0.branch_1x1.0.weight": {
+    "count": 147456,
+    "dtype": "float32",
+    "offset": 4797631,
+    "shape": [
+      384,
+      384,
+      1,
+      1
+    ]
+  },
+  "encoder.stage4.0.branch_1x1.1.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4945471,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_1x1.1.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4945855,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_1x1.1.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4946239,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_1x1.1.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4945087,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_3x3.0.weight": {
+    "count": 1327104,
+    "dtype": "float32",
+    "offset": 3468991,
+    "shape": [
+      384,
+      384,
+      3,
+      3
+    ]
+  },
+  "encoder.stage4.0.branch_3x3.1.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4796479,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_3x3.1.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4796863,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_3x3.1.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4797247,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.0.branch_3x3.1.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 4796095,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_1x1.0.weight": {
+    "count": 147456,
+    "dtype": "float32",
+    "offset": 6275263,
+    "shape": [
+      384,
+      384,
+      1,
+      1
+    ]
+  },
+  "encoder.stage4.1.branch_1x1.1.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6423103,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_1x1.1.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6423487,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_1x1.1.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6423871,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_1x1.1.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6422719,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_3x3.0.weight": {
+    "count": 1327104,
+    "dtype": "float32",
+    "offset": 4946623,
+    "shape": [
+      384,
+      384,
+      3,
+      3
+    ]
+  },
+  "encoder.stage4.1.branch_3x3.1.bias": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6274111,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_3x3.1.running_mean": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6274495,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_3x3.1.running_var": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6274879,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stage4.1.branch_3x3.1.weight": {
+    "count": 384,
+    "dtype": "float32",
+    "offset": 6273727,
+    "shape": [
+      384
+    ]
+  },
+  "encoder.stem_half.bn.bias": {
+    "count": 24,
+    "dtype": "float32",
+    "offset": 678,
+    "shape": [
+      24
+    ]
+  },
+  "encoder.stem_half.bn.running_mean": {
+    "count": 24,
+    "dtype": "float32",
+    "offset": 702,
+    "shape": [
+      24
+    ]
+  },
+  "encoder.stem_half.bn.running_var": {
+    "count": 24,
+    "dtype": "float32",
+    "offset": 726,
+    "shape": [
+      24
+    ]
+  },
+  "encoder.stem_half.bn.weight": {
+    "count": 24,
+    "dtype": "float32",
+    "offset": 654,
+    "shape": [
+      24
+    ]
+  },
+  "encoder.stem_half.conv.weight": {
+    "count": 648,
+    "dtype": "float32",
+    "offset": 6,
+    "shape": [
+      24,
+      3,
+      3,
+      3
+    ]
+  },
+  "encoder.stem_quarter.bn.bias": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 11166,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stem_quarter.bn.running_mean": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 11214,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stem_quarter.bn.running_var": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 11262,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stem_quarter.bn.weight": {
+    "count": 48,
+    "dtype": "float32",
+    "offset": 11118,
+    "shape": [
+      48
+    ]
+  },
+  "encoder.stem_quarter.conv.weight": {
+    "count": 10368,
+    "dtype": "float32",
+    "offset": 750,
+    "shape": [
+      48,
+      24,
+      3,
+      3
+    ]
+  },
+  "mean": {
+    "count": 3,
+    "dtype": "float32",
+    "offset": 0,
+    "shape": [
+      1,
+      3,
+      1,
+      1
+    ]
+  },
+  "std": {
+    "count": 3,
+    "dtype": "float32",
+    "offset": 3,
+    "shape": [
+      1,
+      3,
+      1,
+      1
+    ]
+  }
+}
