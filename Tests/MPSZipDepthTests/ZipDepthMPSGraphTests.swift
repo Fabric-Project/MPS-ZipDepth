@@ -83,7 +83,7 @@ import Testing
     let completionSemaphore = DispatchSemaphore(value: 0)
     let resultLock = NSLock()
     var submittedResult: Result<[Float], any Error>?
-    let wasSubmitted = model.submit(
+    let wasSubmitted = try model.submit(
         inputBuffer: inputBuffer,
         commandBuffer: commandBuffer
     ) { result in

@@ -137,8 +137,13 @@ public final class ZipDepthMPSGraph
         return self.floatArray(from: result, slot: slot)
     }
 
-    /// Asynchronous MPS-MediaPipe-style inference entry point. Returns false
-    /// immediately when all in-flight slots are occupied. Never commits
+    /// Asynchronous MPS-MediaPipe-style inference entry point. Throws for a
+    /// genuinely invalid call (wrong-sized buffer, mismatched device) --
+    /// those are programmer errors, not transient state, so they surface
+    /// immediately rather than looking identical to ordinary backpressure.
+    /// Returns `false` (doesn't throw) only when every `maxFramesInFlight`
+    /// slot is already occupied, since that's expected, recoverable
+    /// pressure a caller should just retry next frame. Never commits
     /// `commandBuffer` -- that decision belongs to whoever created it, not
     /// to this method. The caller must commit it after this call returns
     /// `true`, or `completion` never fires.
@@ -147,11 +152,17 @@ public final class ZipDepthMPSGraph
         inputBuffer: MTLBuffer,
         commandBuffer: MTLCommandBuffer,
         completion: @escaping (Result<[Float], any Error>) -> Void
-    ) -> Bool
+    ) throws -> Bool
     {
-        guard inputBuffer.length >= self.inputBufferLength,
-              commandBuffer.device === self.commandQueue.device,
-              let slot = self.acquireSlotNonBlocking() else
+        guard inputBuffer.length >= self.inputBufferLength else
+        {
+            throw ZipDepthError("Input buffer has \(inputBuffer.length) bytes; ZipDepth requires \(self.inputBufferLength).")
+        }
+        guard commandBuffer.device === self.commandQueue.device else
+        {
+            throw ZipDepthError("The command buffer and ZipDepth model use different Metal devices.")
+        }
+        guard let slot = self.acquireSlotNonBlocking() else
         {
             return false
         }
@@ -215,19 +226,22 @@ public final class ZipDepthMPSGraph
     /// tracks the dependency on `outputBuffer` across that boundary, so no
     /// explicit synchronization is needed.
     ///
-    /// This call acquires one of `maxFramesInFlight` slots before encoding,
-    /// the same protection `run()`/`submit()` use to guard the graph's own
-    /// internal intermediate-tensor storage from being reused by an
-    /// overlapping in-flight call -- released once `commandBuffer`
-    /// completes, however far in the future that turns out to be, rather
-    /// than after a CPU wait. It only blocks the caller if
-    /// `maxFramesInFlight` calls are already in flight on the GPU (real
-    /// backpressure, not a routine per-call stall).
+    /// Drops the call (returns `false`, encodes nothing) instead of
+    /// blocking if all `maxFramesInFlight` slots are already in flight on
+    /// the GPU, matching `submit()` and MPS-MediaPipe's `encode()` -- real
+    /// backpressure should mean a dropped frame, not a CPU stall, so this
+    /// never blocks the caller. The slot this call does acquire is released
+    /// once `commandBuffer` completes, however far in the future that turns
+    /// out to be, rather than after a CPU wait; it's the same protection
+    /// `run()`/`submit()` use to guard the graph's own internal
+    /// intermediate-tensor storage from being reused by an overlapping
+    /// in-flight call.
+    @discardableResult
     public func encode(
         inputBuffer: MTLBuffer,
         outputBuffer: MTLBuffer,
         commandBuffer: MTLCommandBuffer
-    ) throws
+    ) throws -> Bool
     {
         guard commandBuffer.device === self.commandQueue.device else
         {
@@ -241,6 +255,7 @@ public final class ZipDepthMPSGraph
         {
             throw ZipDepthError("Output buffer has \(outputBuffer.length) bytes; ZipDepth requires \(self.outputBufferLength).")
         }
+        guard let slot = self.acquireSlotNonBlocking() else { return false }
 
         let inputData = MPSGraphTensorData(
             inputBuffer,
@@ -253,10 +268,9 @@ public final class ZipDepthMPSGraph
             dataType: .float32
         )
 
-        // Must be acquired, and the release handler registered, before
-        // mpsCommandBuffer.commit() below -- Metal requires completion
-        // handlers to be added before commit.
-        let slot = self.acquireSlotBlocking()
+        // Must be registered before commandBuffer is committed, whenever
+        // that ends up happening -- Metal requires completion handlers to
+        // be added before commit.
         commandBuffer.addCompletedHandler { [weak self] _ in
             self?.releaseSlot(slot)
         }
@@ -275,6 +289,7 @@ public final class ZipDepthMPSGraph
             executionDescriptor: executionDescriptor
         )
         // No commit here -- see the doc comment above; the caller owns that.
+        return true
     }
 
     /// Convenience path for callers without an existing GPU preprocessing buffer.
