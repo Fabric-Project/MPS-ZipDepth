@@ -17,7 +17,9 @@ let package = Package(
         ),
         .testTarget(
             name: "MPSZipDepthTests",
-            dependencies: ["MPSZipDepth"]
+            dependencies: ["MPSZipDepth"],
+            // Read by path, not bundled: see foldedGraphMatchesReference.
+            exclude: ["Fixtures"]
         ),
     ],
     swiftLanguageVersions: [.v5]

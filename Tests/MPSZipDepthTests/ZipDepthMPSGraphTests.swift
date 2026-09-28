@@ -301,3 +301,124 @@ import Testing
     ))
     #expect(depth.allSatisfy { $0.isFinite })
 }
+
+/// Full-output regression gate for graph rewrites (batch-norm folding,
+/// QARep reparameterization, and similar exact transforms). Runs a
+/// deterministic patterned 384x384 image and compares every depth value
+/// against `Fixtures/reference_depth_384.bin`, recorded from the unfolded
+/// graph. Record or re-record it deliberately with
+/// `ZIPDEPTH_WRITE_REFERENCE=1 swift test --filter foldedGraphMatchesReference`.
+@Test func foldedGraphMatchesReference() throws
+{
+    guard let device = MTLCreateSystemDefaultDevice(),
+          let commandQueue = device.makeCommandQueue() else
+    {
+        return
+    }
+
+    let width = 384
+    let height = 384
+    var rgb = [Float](repeating: 0, count: width * height * 3)
+    for y in 0..<height
+    {
+        for x in 0..<width
+        {
+            let index = (y * width + x) * 3
+            let fx = Float(x) / Float(width)
+            let fy = Float(y) / Float(height)
+            rgb[index + 0] = 0.5 + 0.5 * sin(fx * 17 + fy * 3)
+            rgb[index + 1] = 0.5 + 0.5 * cos(fy * 23 - fx * 5)
+            rgb[index + 2] = fx * fy
+        }
+    }
+    let inputBuffer = try #require(device.makeBuffer(bytes: rgb, length: rgb.count * MemoryLayout<Float>.stride))
+    let model = try ZipDepthMPSGraph(inputWidth: width, inputHeight: height, commandQueue: commandQueue)
+    let depth = try model.run(inputBuffer: inputBuffer)
+
+    let fixtureURL = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .appending(path: "Fixtures/reference_depth_384.bin")
+    if ProcessInfo.processInfo.environment["ZIPDEPTH_WRITE_REFERENCE"] != nil
+    {
+        try depth.withUnsafeBytes { try Data($0).write(to: fixtureURL) }
+        print("Wrote ZipDepth reference output to \(fixtureURL.path)")
+        return
+    }
+
+    let referenceData = try Data(contentsOf: fixtureURL)
+    let reference = referenceData.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+    try #require(reference.count == depth.count)
+
+    var maximumError: Float = 0
+    var squaredErrorSum: Double = 0
+    var absoluteErrorSum: Double = 0
+    for (actual, expected) in zip(depth, reference)
+    {
+        let error = abs(actual - expected)
+        maximumError = max(maximumError, error)
+        absoluteErrorSum += Double(error)
+        squaredErrorSum += Double(error) * Double(error)
+    }
+    let peak = Double(reference.max() ?? 1)
+    let meanSquaredError = squaredErrorSum / Double(reference.count)
+    let psnr = meanSquaredError == 0 ? Double.infinity : 10 * log10(peak * peak / meanSquaredError)
+    print("ZipDepth vs reference: MAE=\(absoluteErrorSum / Double(reference.count)) max=\(maximumError) PSNR=\(psnr) dB")
+    #expect(psnr > 70, "an exact rewrite should stay above 70 dB")
+}
+
+/// Opt-in steady-state benchmark: graph construction time, then per-frame CPU
+/// encode cost and queued wall time over 60 frames submitted without waits.
+/// `ZIPDEPTH_RUN_BENCHMARK=1 swift test --filter zipDepthSteadyStatePerformance`
+/// (`ZIPDEPTH_BENCHMARK_SIZE` overrides the default 384).
+@Test func zipDepthSteadyStatePerformance() throws
+{
+    guard ProcessInfo.processInfo.environment["ZIPDEPTH_RUN_BENCHMARK"] != nil,
+          let device = MTLCreateSystemDefaultDevice(),
+          let commandQueue = device.makeCommandQueue() else
+    {
+        return
+    }
+    let size = Int(ProcessInfo.processInfo.environment["ZIPDEPTH_BENCHMARK_SIZE"] ?? "") ?? 384
+    let clock = ContinuousClock()
+    func milliseconds(_ duration: Duration) -> Double
+    {
+        Double(duration.components.seconds) * 1_000 + Double(duration.components.attoseconds) / 1e15
+    }
+
+    let constructionStart = clock.now
+    let model = try ZipDepthMPSGraph(inputWidth: size, inputHeight: size, commandQueue: commandQueue, maxFramesInFlight: 16)
+    let construction = clock.now - constructionStart
+
+    let inputBuffer = try #require(device.makeBuffer(length: model.inputBufferLength, options: .storageModePrivate))
+    let outputBuffer = try #require(device.makeBuffer(length: model.outputBufferLength, options: .storageModePrivate))
+    func encodeFrame() throws -> (MPSCommandBuffer, Double)
+    {
+        let rawCommandBuffer = try #require(commandQueue.makeCommandBuffer())
+        let commandBuffer = MPSCommandBuffer(commandBuffer: rawCommandBuffer)
+        let start = clock.now
+        let accepted = try model.encode(inputBuffer: inputBuffer, outputBuffer: outputBuffer, commandBuffer: commandBuffer)
+        commandBuffer.commit()
+        #expect(accepted)
+        return (commandBuffer, milliseconds(clock.now - start))
+    }
+
+    for _ in 0..<10 { try encodeFrame().0.waitUntilCompleted() }
+
+    let measuredStart = clock.now
+    var cpuSamples: [Double] = []
+    var last: MPSCommandBuffer?
+    for _ in 0..<60
+    {
+        let (commandBuffer, cpu) = try encodeFrame()
+        cpuSamples.append(cpu)
+        last = commandBuffer
+        // Keep at most a few frames queued so the slot pool never drops one.
+        if cpuSamples.count % 8 == 0 { commandBuffer.waitUntilCompleted() }
+    }
+    last?.waitUntilCompleted()
+    let measured = clock.now - measuredStart
+
+    print("ZipDepth \(size)x\(size) graph construction: \(milliseconds(construction) / 1_000) s")
+    print("ZipDepth measured CPU encode: \(cpuSamples.reduce(0, +) / Double(cpuSamples.count)) ms/frame")
+    print("ZipDepth measured queued wall time: \(milliseconds(measured) / 60) ms/frame")
+}

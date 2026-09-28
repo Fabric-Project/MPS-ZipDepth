@@ -377,10 +377,15 @@ private struct GraphBuilder
         }
         stage4 = try self.sppf(stage4, prefix: "encoder.spp")
 
+        // The cross-scale exchange is scaled by 0.3 after a linear resize or
+        // pool; the scale commutes with both, so it is folded into the conv
+        // weights instead of running as its own multiply.
         let stage3BeforeCrossScale = stage3
         let lowToHigh = try self.convolution(
             stage4,
-            weight: "encoder.cross_scale.low_to_high.weight",
+            weights: self.scaled(try self.weights.floats(named: "encoder.cross_scale.low_to_high.weight"), by: 0.3),
+            shape: try self.weights.shape(named: "encoder.cross_scale.low_to_high.weight"),
+            bias: nil,
             groups: 4
         )
         let lowUpsampled = self.resizeNearest(
@@ -388,15 +393,17 @@ private struct GraphBuilder
             height: self.inputHeight / 16,
             width: self.inputWidth / 16
         )
-        stage3 = self.graph.addition(stage3, self.scale(lowUpsampled, by: 0.3), name: nil)
+        stage3 = self.graph.addition(stage3, lowUpsampled, name: nil)
 
         let highToLow = try self.convolution(
             stage3BeforeCrossScale,
-            weight: "encoder.cross_scale.high_to_low.weight",
+            weights: self.scaled(try self.weights.floats(named: "encoder.cross_scale.high_to_low.weight"), by: 0.3),
+            shape: try self.weights.shape(named: "encoder.cross_scale.high_to_low.weight"),
+            bias: nil,
             groups: 4
         )
         let highDownsampled = try self.averagePool(highToLow, kernel: 2, stride: 2)
-        stage4 = self.graph.addition(stage4, self.scale(highDownsampled, by: 0.3), name: nil)
+        stage4 = self.graph.addition(stage4, highDownsampled, name: nil)
 
         let decoder4 = try self.convBN(stage4, prefix: "decoder.proj4")
         let decoder3 = try self.fusion(
@@ -425,6 +432,12 @@ private struct GraphBuilder
         return try self.npuUpsample(feature: decoderHalf, depth: depthHalf)
     }
 
+    /// QARep block reparameterized for inference: the 3x3 conv + BN, the
+    /// 1x1 conv + BN, and the optional identity branch are all linear in the
+    /// input, so they sum exactly into one 3x3 conv with bias. The 1x1 kernel
+    /// lands on the 3x3 center (same stride; 3x3 uses padding 1, 1x1 none,
+    /// so both read the same input pixel), and the identity adds 1 at the
+    /// center of each channel's own kernel.
     private func qaRepBlock(
         _ input: MPSGraphTensor,
         prefix: String,
@@ -432,28 +445,85 @@ private struct GraphBuilder
         identity: Bool
     ) throws -> MPSGraphTensor
     {
-        let branch3 = try self.batchNormalize(
-            self.convolution(input, weight: "\(prefix).branch_3x3.0.weight", stride: stride, padding: 1),
+        let shape3 = try self.weights.shape(named: "\(prefix).branch_3x3.0.weight")
+        let shape1 = try self.weights.shape(named: "\(prefix).branch_1x1.0.weight")
+        let outputChannels = shape3[0]
+        let inputChannels = shape3[1]
+        guard shape3 == [outputChannels, inputChannels, 3, 3], shape1 == [outputChannels, inputChannels, 1, 1] else
+        {
+            throw ZipDepthError("QARep block '\(prefix)' has unexpected branch shapes \(shape3) and \(shape1).")
+        }
+        guard !identity || outputChannels == inputChannels else
+        {
+            throw ZipDepthError("QARep block '\(prefix)' has an identity branch but \(inputChannels) -> \(outputChannels) channels.")
+        }
+        let branch3 = try self.foldBatchNormalization(
+            weights: try self.weights.floats(named: "\(prefix).branch_3x3.0.weight"),
+            shape: shape3,
+            bias: nil,
             prefix: "\(prefix).branch_3x3.1"
         )
-        let branch1 = try self.batchNormalize(
-            self.convolution(input, weight: "\(prefix).branch_1x1.0.weight", stride: stride),
+        let branch1 = try self.foldBatchNormalization(
+            weights: try self.weights.floats(named: "\(prefix).branch_1x1.0.weight"),
+            shape: shape1,
+            bias: nil,
             prefix: "\(prefix).branch_1x1.1"
         )
-        var output = self.graph.addition(branch3, branch1, name: nil)
-        if identity
+        var kernel = branch3.weights
+        for outputChannel in 0..<outputChannels
         {
-            output = self.graph.addition(output, input, name: nil)
+            for inputChannel in 0..<inputChannels
+            {
+                let center = ((outputChannel * inputChannels + inputChannel) * 3 + 1) * 3 + 1
+                kernel[center] += branch1.weights[outputChannel * inputChannels + inputChannel]
+                if identity, inputChannel == outputChannel
+                {
+                    kernel[center] += 1
+                }
+            }
         }
+        let bias = zip(branch3.bias, branch1.bias).map { $0 + $1 }
+        let output = try self.convolution(input, weights: kernel, shape: shape3, bias: bias, stride: stride, padding: 1)
         return self.graph.reLU(with: output, name: nil)
     }
 
+    /// `input + BN(depthwise3x3(input) + depthwise3x3_dilation2(input))` as
+    /// one depthwise 5x5 conv: the plain 3x3 taps sit at offsets -1...1 and
+    /// the dilated taps at -2, 0, 2 inside the 5x5 window (padding 2 covers
+    /// both exactly), BN folds per channel, and the residual adds 1 at the
+    /// center.
     private func minimalMultiScale(_ input: MPSGraphTensor, prefix: String) throws -> MPSGraphTensor
     {
-        let branch1 = try self.convolution(input, weight: "\(prefix).branch1.weight", groups: 96, padding: 1)
-        let branch2 = try self.convolution(input, weight: "\(prefix).branch2.weight", groups: 96, dilation: 2, padding: 2)
-        let combined = self.graph.addition(branch1, branch2, name: nil)
-        return self.graph.addition(input, try self.batchNormalize(combined, prefix: "\(prefix).bn"), name: nil)
+        let shape = try self.weights.shape(named: "\(prefix).branch1.weight")
+        let channels = shape[0]
+        guard shape == [channels, 1, 3, 3],
+              try self.weights.shape(named: "\(prefix).branch2.weight") == shape else
+        {
+            throw ZipDepthError("Multi-scale block '\(prefix)' has unexpected depthwise shapes.")
+        }
+        let branch1 = try self.weights.floats(named: "\(prefix).branch1.weight")
+        let branch2 = try self.weights.floats(named: "\(prefix).branch2.weight")
+        var kernel = [Float](repeating: 0, count: channels * 25)
+        for channel in 0..<channels
+        {
+            for row in 0..<3
+            {
+                for column in 0..<3
+                {
+                    let tap = branch1[(channel * 3 + row) * 3 + column]
+                    let dilatedTap = branch2[(channel * 3 + row) * 3 + column]
+                    kernel[(channel * 5 + row + 1) * 5 + column + 1] += tap
+                    kernel[(channel * 5 + row * 2) * 5 + column * 2] += dilatedTap
+                }
+            }
+        }
+        let folded = try self.foldBatchNormalization(weights: kernel, shape: [channels, 1, 5, 5], bias: nil, prefix: "\(prefix).bn")
+        var fused = folded.weights
+        for channel in 0..<channels
+        {
+            fused[(channel * 5 + 2) * 5 + 2] += 1
+        }
+        return try self.convolution(input, weights: fused, shape: [channels, 1, 5, 5], bias: folded.bias, groups: channels, padding: 2)
     }
 
     private func stripPoolingAttention(_ input: MPSGraphTensor, prefix: String) throws -> MPSGraphTensor
@@ -461,8 +531,7 @@ private struct GraphBuilder
         let horizontal = self.graph.mean(of: input, axes: [3], name: nil)
         let vertical = self.graph.mean(of: input, axes: [2], name: nil)
         let strips = self.graph.addition(horizontal, vertical, name: nil)
-        let gateConv = try self.convolution(strips, weight: "\(prefix).gate_conv.0.weight", groups: 96)
-        let normalized = try self.batchNormalize(gateConv, prefix: "\(prefix).gate_conv.1")
+        let normalized = try self.convolutionBatchNormalized(strips, weight: "\(prefix).gate_conv.0.weight", batchNormalization: "\(prefix).gate_conv.1", groups: 96)
         return self.graph.multiplication(input, self.graph.sigmoid(with: normalized, name: nil), name: nil)
     }
 
@@ -493,12 +562,12 @@ private struct GraphBuilder
         let transposedMask = self.graph.transpose(mask, permutation: [0, 2, 1], name: nil)
         var context = self.graph.matrixMultiplication(primary: flatInput, secondary: transposedMask, name: nil)
         context = self.graph.reshape(context, shape: [1, 192, 1, 1], name: nil)
-        context = try self.convolution(
+        context = self.graph.reLU(with: try self.convolutionBatchNormalized(
             context,
             weight: "\(prefix).transform.0.weight",
-            bias: "\(prefix).transform.0.bias"
-        )
-        context = self.graph.reLU(with: try self.batchNormalize(context, prefix: "\(prefix).transform.1"), name: nil)
+            bias: "\(prefix).transform.0.bias",
+            batchNormalization: "\(prefix).transform.1"
+        ), name: nil)
         context = try self.convolution(
             context,
             weight: "\(prefix).transform.3.weight",
@@ -525,20 +594,43 @@ private struct GraphBuilder
         width: Int
     ) throws -> MPSGraphTensor
     {
-        let projectedHigh = try self.convolution(high, weight: "\(prefix).proj_high.weight", groups: 4)
+        // BN(highConv + lowConv) == highConv' + lowConv' + shift: the per-
+        // channel BN scale folds into both convs, the shift into one bias.
+        let highShape = try self.weights.shape(named: "\(prefix).proj_high.weight")
+        let lowShape = try self.weights.shape(named: "\(prefix).proj_low.weight")
+        let foldedHigh = try self.foldBatchNormalization(
+            weights: try self.weights.floats(named: "\(prefix).proj_high.weight"),
+            shape: highShape,
+            bias: nil,
+            prefix: "\(prefix).bn"
+        )
+        let foldedLow = try self.foldBatchNormalization(
+            weights: try self.weights.floats(named: "\(prefix).proj_low.weight"),
+            shape: lowShape,
+            bias: nil,
+            prefix: "\(prefix).bn"
+        )
+        let projectedHigh = try self.convolution(high, weights: foldedHigh.weights, shape: highShape, bias: foldedHigh.bias, groups: 4)
         let resizedLow = self.resizeBilinear(low, height: height, width: width)
-        let projectedLow = try self.convolution(resizedLow, weight: "\(prefix).proj_low.weight", groups: 4)
-        let sum = self.graph.addition(projectedHigh, projectedLow, name: nil)
-        return self.graph.reLU(with: try self.batchNormalize(sum, prefix: "\(prefix).bn"), name: nil)
+        let projectedLow = try self.convolution(resizedLow, weights: foldedLow.weights, shape: lowShape, bias: nil, groups: 4)
+        return self.graph.reLU(with: self.graph.addition(projectedHigh, projectedLow, name: nil), name: nil)
     }
 
     private func npuUpsample(feature: MPSGraphTensor, depth: MPSGraphTensor) throws -> MPSGraphTensor
     {
         let prefix = "decoder.convex_up.where_conv"
-        var alpha = try self.convolution(feature, weight: "\(prefix).0.weight")
-        alpha = self.graph.reLU(with: try self.batchNormalize(alpha, prefix: "\(prefix).1"), name: nil)
-        alpha = try self.convolution(alpha, weight: "\(prefix).3.weight", groups: 16, padding: 2)
-        alpha = self.graph.reLU(with: try self.batchNormalize(alpha, prefix: "\(prefix).4"), name: nil)
+        var alpha = self.graph.reLU(with: try self.convolutionBatchNormalized(
+            feature,
+            weight: "\(prefix).0.weight",
+            batchNormalization: "\(prefix).1"
+        ), name: nil)
+        alpha = self.graph.reLU(with: try self.convolutionBatchNormalized(
+            alpha,
+            weight: "\(prefix).3.weight",
+            batchNormalization: "\(prefix).4",
+            groups: 16,
+            padding: 2
+        ), name: nil)
         alpha = try self.convolution(alpha, weight: "\(prefix).6.weight")
 
         alpha = self.graph.sigmoid(
@@ -562,19 +654,66 @@ private struct GraphBuilder
         stride: Int = 1
     ) throws -> MPSGraphTensor
     {
-        let convolution = try self.convolution(
+        let convolution = try self.convolutionBatchNormalized(
             input,
             weight: "\(prefix).conv.weight",
+            batchNormalization: "\(prefix).bn",
             stride: stride,
             padding: try self.weights.shape(named: "\(prefix).conv.weight")[2] / 2
         )
-        return self.graph.reLU(with: try self.batchNormalize(convolution, prefix: "\(prefix).bn"), name: nil)
+        return self.graph.reLU(with: convolution, name: nil)
     }
 
     private func convolution(
         _ input: MPSGraphTensor,
         weight weightName: String,
         bias biasName: String? = nil,
+        stride: Int = 1,
+        groups: Int = 1,
+        dilation: Int = 1,
+        padding: Int = 0
+    ) throws -> MPSGraphTensor
+    {
+        try self.convolution(
+            input,
+            weights: try self.weights.floats(named: weightName),
+            shape: try self.weights.shape(named: weightName),
+            bias: try biasName.map { try self.weights.floats(named: $0) },
+            stride: stride,
+            groups: groups,
+            dilation: dilation,
+            padding: padding
+        )
+    }
+
+    /// A convolution followed by an inference batch norm, folded into one
+    /// convolution with bias.
+    private func convolutionBatchNormalized(
+        _ input: MPSGraphTensor,
+        weight weightName: String,
+        bias biasName: String? = nil,
+        batchNormalization batchNormalizationPrefix: String,
+        stride: Int = 1,
+        groups: Int = 1,
+        padding: Int = 0
+    ) throws -> MPSGraphTensor
+    {
+        let shape = try self.weights.shape(named: weightName)
+        let folded = try self.foldBatchNormalization(
+            weights: try self.weights.floats(named: weightName),
+            shape: shape,
+            bias: try biasName.map { try self.weights.floats(named: $0) },
+            prefix: batchNormalizationPrefix
+        )
+        return try self.convolution(input, weights: folded.weights, shape: shape, bias: folded.bias, stride: stride, groups: groups, padding: padding)
+    }
+
+    /// OIHW `weights` with `shape`, optional per-output-channel `bias`.
+    private func convolution(
+        _ input: MPSGraphTensor,
+        weights: [Float],
+        shape: [Int],
+        bias: [Float]?,
         stride: Int = 1,
         groups: Int = 1,
         dilation: Int = 1,
@@ -596,32 +735,62 @@ private struct GraphBuilder
             weightsLayout: .OIHW
         ) else
         {
-            throw ZipDepthError("Could not create the convolution descriptor for '\(weightName)'.")
+            throw ZipDepthError("Could not create a convolution descriptor for shape \(shape).")
         }
-        var output = self.graph.convolution2D(
-            input,
-            weights: try self.weights.constant(self.graph, named: weightName),
-            descriptor: descriptor,
-            name: weightName
+        let weightTensor = self.graph.constant(
+            Data(bytes: weights, count: weights.count * MemoryLayout<Float>.stride),
+            shape: shape.map(NSNumber.init(value:)),
+            dataType: .float32
         )
-        if let biasName
+        var output = self.graph.convolution2D(input, weights: weightTensor, descriptor: descriptor, name: nil)
+        if let bias
         {
-            output = self.graph.addition(output, try self.broadcastConstant(named: biasName), name: nil)
+            output = self.graph.addition(output, self.channelConstant(bias), name: nil)
         }
         return output
     }
 
-    private func batchNormalize(_ input: MPSGraphTensor, prefix: String) throws -> MPSGraphTensor
+    /// Folds the inference batch norm at `prefix` into OIHW conv `weights`:
+    /// with s = gamma / sqrt(var + eps), W'[o] = W[o] * s[o] and
+    /// b'[o] = b[o] * s[o] + (beta[o] - mean[o] * s[o]), where b is the
+    /// conv's own bias (zero when it has none).
+    private func foldBatchNormalization(
+        weights: [Float],
+        shape: [Int],
+        bias: [Float]?,
+        prefix: String
+    ) throws -> (weights: [Float], bias: [Float])
     {
         let gamma = try self.weights.floats(named: "\(prefix).weight")
         let beta = try self.weights.floats(named: "\(prefix).bias")
         let mean = try self.weights.floats(named: "\(prefix).running_mean")
         let variance = try self.weights.floats(named: "\(prefix).running_var")
-        let scaleValues = zip(gamma, variance).map { $0 / sqrt($1 + 0.00001) }
-        let biasValues = zip(zip(beta, mean), scaleValues).map { pair, scale in pair.0 - pair.1 * scale }
-        let scale = self.channelConstant(scaleValues)
-        let bias = self.channelConstant(biasValues)
-        return self.graph.addition(self.graph.multiplication(input, scale, name: nil), bias, name: nil)
+        let outputChannels = shape[0]
+        guard gamma.count == outputChannels, beta.count == outputChannels,
+              mean.count == outputChannels, variance.count == outputChannels,
+              bias == nil || bias?.count == outputChannels else
+        {
+            throw ZipDepthError("Batch norm '\(prefix)' does not match a \(outputChannels)-channel convolution.")
+        }
+        let valuesPerOutputChannel = shape.dropFirst().reduce(1, *)
+        var folded = weights
+        var foldedBias = [Float](repeating: 0, count: outputChannels)
+        for outputChannel in 0..<outputChannels
+        {
+            let scale = gamma[outputChannel] / sqrt(variance[outputChannel] + 0.00001)
+            let start = outputChannel * valuesPerOutputChannel
+            for index in start..<(start + valuesPerOutputChannel)
+            {
+                folded[index] *= scale
+            }
+            foldedBias[outputChannel] = (bias?[outputChannel] ?? 0) * scale + beta[outputChannel] - mean[outputChannel] * scale
+        }
+        return (folded, foldedBias)
+    }
+
+    private func scaled(_ values: [Float], by factor: Float) -> [Float]
+    {
+        values.map { $0 * factor }
     }
 
     private func resizeBilinear(_ input: MPSGraphTensor, height: Int, width: Int) -> MPSGraphTensor
@@ -716,10 +885,5 @@ private struct GraphBuilder
         return withUnsafeBytes(of: &value) { bytes in
             self.graph.constant(Data(bytes), shape: [1], dataType: .float32)
         }
-    }
-
-    private func scale(_ input: MPSGraphTensor, by value: Float) -> MPSGraphTensor
-    {
-        self.graph.multiplication(input, self.scalar(value), name: nil)
     }
 }
