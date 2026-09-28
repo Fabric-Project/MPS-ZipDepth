@@ -7,7 +7,8 @@ extension ZipDepthMPSGraph
         inputWidth: Int = 384,
         inputHeight: Int = 384,
         commandQueue: MTLCommandQueue,
-        maxFramesInFlight: Int = 3
+        maxFramesInFlight: Int = 3,
+        precision: ZipDepthPrecision = .float32
     ) throws
     {
         guard let binaryURL = Bundle.module.url(
@@ -29,7 +30,8 @@ extension ZipDepthMPSGraph
             inputWidth: inputWidth,
             inputHeight: inputHeight,
             commandQueue: commandQueue,
-            maxFramesInFlight: maxFramesInFlight
+            maxFramesInFlight: maxFramesInFlight,
+            precision: precision
         )
     }
 }

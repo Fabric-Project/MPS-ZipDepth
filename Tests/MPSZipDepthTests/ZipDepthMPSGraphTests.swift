@@ -308,6 +308,8 @@ import Testing
 /// against `Fixtures/reference_depth_384.bin`, recorded from the unfolded
 /// graph. Record or re-record it deliberately with
 /// `ZIPDEPTH_WRITE_REFERENCE=1 swift test --filter foldedGraphMatchesReference`.
+/// `ZIPDEPTH_PRECISION=float16` compares the float16 graph against the same
+/// float32 reference, gated at the float16 bar instead of the exact one.
 @Test func foldedGraphMatchesReference() throws
 {
     guard let device = MTLCreateSystemDefaultDevice(),
@@ -332,7 +334,8 @@ import Testing
         }
     }
     let inputBuffer = try #require(device.makeBuffer(bytes: rgb, length: rgb.count * MemoryLayout<Float>.stride))
-    let model = try ZipDepthMPSGraph(inputWidth: width, inputHeight: height, commandQueue: commandQueue)
+    let precision = zipDepthTestPrecision()
+    let model = try ZipDepthMPSGraph(inputWidth: width, inputHeight: height, commandQueue: commandQueue, precision: precision)
     let depth = try model.run(inputBuffer: inputBuffer)
 
     let fixtureURL = URL(fileURLWithPath: #filePath)
@@ -340,6 +343,7 @@ import Testing
         .appending(path: "Fixtures/reference_depth_384.bin")
     if ProcessInfo.processInfo.environment["ZIPDEPTH_WRITE_REFERENCE"] != nil
     {
+        try #require(precision == .float32, "record the reference from the float32 graph")
         try depth.withUnsafeBytes { try Data($0).write(to: fixtureURL) }
         print("Wrote ZipDepth reference output to \(fixtureURL.path)")
         return
@@ -362,8 +366,10 @@ import Testing
     let peak = Double(reference.max() ?? 1)
     let meanSquaredError = squaredErrorSum / Double(reference.count)
     let psnr = meanSquaredError == 0 ? Double.infinity : 10 * log10(peak * peak / meanSquaredError)
-    print("ZipDepth vs reference: MAE=\(absoluteErrorSum / Double(reference.count)) max=\(maximumError) PSNR=\(psnr) dB")
-    #expect(psnr > 70, "an exact rewrite should stay above 70 dB")
+    print("ZipDepth \(precision) vs reference: MAE=\(absoluteErrorSum / Double(reference.count)) max=\(maximumError) PSNR=\(psnr) dB")
+    // Exact float32 rewrites stay above 70 dB; float16 compute is held to
+    // the Core AI float16 bar (investigate below 40 dB).
+    #expect(psnr > (precision == .float32 ? 70 : 40))
 }
 
 /// Opt-in steady-state benchmark: graph construction time, then per-frame CPU
@@ -386,7 +392,8 @@ import Testing
     }
 
     let constructionStart = clock.now
-    let model = try ZipDepthMPSGraph(inputWidth: size, inputHeight: size, commandQueue: commandQueue, maxFramesInFlight: 16)
+    let precision = zipDepthTestPrecision()
+    let model = try ZipDepthMPSGraph(inputWidth: size, inputHeight: size, commandQueue: commandQueue, maxFramesInFlight: 16, precision: precision)
     let construction = clock.now - constructionStart
 
     let inputBuffer = try #require(device.makeBuffer(length: model.inputBufferLength, options: .storageModePrivate))
@@ -418,7 +425,12 @@ import Testing
     last?.waitUntilCompleted()
     let measured = clock.now - measuredStart
 
-    print("ZipDepth \(size)x\(size) graph construction: \(milliseconds(construction) / 1_000) s")
+    print("ZipDepth \(size)x\(size) \(precision) graph construction: \(milliseconds(construction) / 1_000) s")
     print("ZipDepth measured CPU encode: \(cpuSamples.reduce(0, +) / Double(cpuSamples.count)) ms/frame")
     print("ZipDepth measured queued wall time: \(milliseconds(measured) / 60) ms/frame")
+}
+
+private func zipDepthTestPrecision() -> ZipDepthPrecision
+{
+    ProcessInfo.processInfo.environment["ZIPDEPTH_PRECISION"] == "float16" ? .float16 : .float32
 }
