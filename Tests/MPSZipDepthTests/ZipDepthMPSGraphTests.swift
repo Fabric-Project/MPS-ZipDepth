@@ -1,5 +1,6 @@
 import Foundation
 import Metal
+import MetalPerformanceShaders
 import Testing
 @testable import MPSZipDepth
 
@@ -135,8 +136,12 @@ import Testing
         return
     }
 
-    try model.encode(inputBuffer: inputBuffer, outputBuffer: outputBuffer, commandBuffer: encodeCommandBuffer)
-    encodeCommandBuffer.commit()
+    let wasEncoded = try model.encode(
+        inputBuffer: inputBuffer,
+        outputBuffer: outputBuffer,
+        commandBuffer: encodeCommandBuffer
+    )
+    #expect(wasEncoded)
     // Deliberately no wait here -- this is the exact gap under test.
 
     guard let blitEncoder = verifyCommandBuffer.makeBlitCommandEncoder() else
@@ -166,14 +171,11 @@ import Testing
     #expect(abs(meanDepth - 0.046175327) < 0.0005)
 }
 
-/// `encode()`'s slot protection should serialize two overlapping in-flight
-/// calls against the same model instance rather than let them race and
-/// corrupt the graph's shared internal intermediate-tensor storage --
-/// `maxFramesInFlight: 1` forces the second call to contend for the only
-/// slot, which should make it block in `acquireSlotBlocking()` until the
-/// first call's GPU work completes and releases it, not crash or produce
-/// corrupted output.
-@Test func encodeSerializesOverlappingCallsViaSlotProtection() throws
+/// `encode()`'s slot protection drops an overlapping call rather than
+/// allowing two executions to race through the graph's shared intermediate
+/// storage. Once the first call completes and releases its slot, retrying
+/// the second call succeeds.
+@Test func encodeDropsAnOverlappingCallUntilItsSlotIsReleased() throws
 {
     guard let device = MTLCreateSystemDefaultDevice(),
           let commandQueue = device.makeCommandQueue() else
@@ -194,17 +196,37 @@ import Testing
           let outputBufferB = device.makeBuffer(length: model.outputBufferLength, options: .storageModePrivate),
           let verifyBufferA = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared),
           let verifyBufferB = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared),
-          let commandBufferA = commandQueue.makeCommandBuffer(),
+          let rawCommandBufferA = commandQueue.makeCommandBuffer(),
           let commandBufferB = commandQueue.makeCommandBuffer() else
     {
         return
     }
 
-    try model.encode(inputBuffer: inputBufferA, outputBuffer: outputBufferA, commandBuffer: commandBufferA)
-    // With maxFramesInFlight: 1, this call has to wait for slot A's release
-    // (registered on commandBufferA's completion) before it can proceed --
-    // exercising the exact contention path the protection exists for.
-    try model.encode(inputBuffer: inputBufferB, outputBuffer: outputBufferB, commandBuffer: commandBufferB)
+    let commandBufferA = MPSCommandBuffer(commandBuffer: rawCommandBufferA)
+    let firstWasEncoded = try model.encode(
+        inputBuffer: inputBufferA,
+        outputBuffer: outputBufferA,
+        commandBuffer: commandBufferA,
+        commit: false
+    )
+    let overlappingCallWasEncoded = try model.encode(
+        inputBuffer: inputBufferB,
+        outputBuffer: outputBufferB,
+        commandBuffer: commandBufferB
+    )
+    #expect(firstWasEncoded)
+    #expect(!overlappingCallWasEncoded)
+
+    commandBufferA.commit()
+    commandBufferA.waitUntilCompleted()
+
+    guard let retryCommandBuffer = commandQueue.makeCommandBuffer() else { return }
+    let retryWasEncoded = try model.encode(
+        inputBuffer: inputBufferB,
+        outputBuffer: outputBufferB,
+        commandBuffer: retryCommandBuffer
+    )
+    #expect(retryWasEncoded)
 
     guard let verifyCommandBuffer = commandQueue.makeCommandBuffer(),
           let blitEncoder = verifyCommandBuffer.makeBlitCommandEncoder() else

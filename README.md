@@ -45,20 +45,17 @@ and height and contains nonnegative relative-depth values, not metric distance.
 The execution API mirrors MPS-MediaPipe:
 
 - `run(inputBuffer:)` executes synchronously and returns the depth values.
-- `submit(inputBuffer:commandBuffer:completion:)` submits asynchronously,
-  commits the supplied command buffer, and returns `false` instead of blocking
-  when every in-flight slot is occupied.
-- `encode(inputBuffer:outputBuffer:commandBuffer:)` is the GPU-resident,
-  no-CPU-readback path. Like `submit(...)`, it commits `commandBuffer`
-  internally. Pass RGB preprocessing already encoded on that same buffer.
-  No CPU wait is needed before reading `outputBuffer`: encode any
-  postprocessing on a *different* command buffer committed to the same
-  `MTLCommandQueue` afterward -- Metal's same-queue commit ordering and
-  automatic hazard tracking cover the dependency without an explicit wait.
-  This call acquires one of `maxFramesInFlight` slots before encoding, the
-  same protection `run()`/`submit()` use, released on GPU completion rather
-  than a CPU wait; it only blocks the caller if every slot is already
-  occupied.
+- `submit(inputBuffer:commandBuffer:commit:completion:)` submits
+  asynchronously and returns `false` instead of blocking when every in-flight
+  slot is occupied.
+- `encode(inputBuffer:outputBuffer:commandBuffer:commit:)` is the
+  GPU-resident, no-CPU-readback path and has the same nonblocking behavior.
+  Both methods default `commit` to `true` and commit through an
+  `MPSCommandBuffer` wrapper. Pass `commit: false` only when the supplied
+  command buffer is already a caller-owned `MPSCommandBuffer`; MPSGraph may
+  call `commitAndContinue()`, and that persistent wrapper is what follows the
+  replacement root buffer safely. This allows preprocessing, inference, and
+  dependent postprocessing to remain ordered on the GPU without a CPU wait.
 
 `prediction(rgb:)` remains as a convenience path for callers without a GPU
 preprocessing buffer. Resize/crop, color conversion, and NHWC packing should

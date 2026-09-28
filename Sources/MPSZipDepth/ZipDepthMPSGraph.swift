@@ -143,14 +143,29 @@ public final class ZipDepthMPSGraph
     /// immediately rather than looking identical to ordinary backpressure.
     /// Returns `false` (doesn't throw) only when every `maxFramesInFlight`
     /// slot is already occupied, since that's expected, recoverable
-    /// pressure a caller should just retry next frame. Never commits
-    /// `commandBuffer` -- that decision belongs to whoever created it, not
-    /// to this method. The caller must commit it after this call returns
-    /// `true`, or `completion` never fires.
+    /// pressure a caller should just retry next frame.
+    ///
+    /// Commits `commandBuffer` internally when `commit` is true -- never do
+    /// this yourself by calling `.commit()` on the raw buffer you passed
+    /// in. `MPSGraphExecutable.encode(to:)` (called inside this method) may
+    /// commit the buffer on its own via an internal `commitAndContinue`
+    /// (confirmed empirically: a caller-side explicit `.commit()` after
+    /// this call crashed with `-[_MTLCommandBuffer addCompletedHandler:]`
+    /// asserting inside Metal's own commit bookkeeping -- the signature of
+    /// committing an already-committed buffer). Only the `MPSCommandBuffer`
+    /// persistent `MPSCommandBuffer` wrapper used by this method can tell
+    /// whether that already happened, so only it may issue the actual commit
+    /// call. Pass
+    /// `commit: true` for a dedicated buffer you want committed as part of
+    /// this call (`completion` fires once its GPU work finishes); pass
+    /// `commit: false` only with a caller-owned `MPSCommandBuffer`, leaving
+    /// that persistent wrapper open for its owner to keep encoding and
+    /// eventually commit. The completion won't fire until that happens.
     @discardableResult
     public func submit(
         inputBuffer: MTLBuffer,
         commandBuffer: MTLCommandBuffer,
+        commit: Bool = true,
         completion: @escaping (Result<[Float], any Error>) -> Void
     ) throws -> Bool
     {
@@ -162,6 +177,10 @@ public final class ZipDepthMPSGraph
         {
             throw ZipDepthError("The command buffer and ZipDepth model use different Metal devices.")
         }
+        let mpsCommandBuffer = try self.mpsCommandBuffer(
+            wrapping: commandBuffer,
+            commit: commit
+        )
         guard let slot = self.acquireSlotNonBlocking() else
         {
             return false
@@ -192,13 +211,16 @@ public final class ZipDepthMPSGraph
             }
         }
 
-        let mpsCommandBuffer = MPSCommandBuffer(commandBuffer: commandBuffer)
         _ = self.executable.encode(
             to: mpsCommandBuffer,
             inputs: [inputData],
             results: nil,
             executionDescriptor: executionDescriptor
         )
+        if commit
+        {
+            mpsCommandBuffer.commit()
+        }
         return true
     }
 
@@ -209,14 +231,24 @@ public final class ZipDepthMPSGraph
     }
 
     /// Encodes inference into an existing Metal command buffer without a CPU
-    /// readback. Never commits `commandBuffer` -- that decision belongs
-    /// entirely to whoever created it, not to this method.
-    /// `MPSGraphExecutable.encode(to:)` doesn't commit anything on its own
-    /// either, so `commandBuffer` just holds this graph's encoded work,
-    /// in order alongside whatever else the caller encodes onto it, until
-    /// its owner commits it. Pass a dedicated buffer this call owns
+    /// readback. Commits `commandBuffer` internally when `commit` is true --
+    /// never do this yourself by calling `.commit()` on the raw buffer you
+    /// passed in. `MPSGraphExecutable.encode(to:)` (called inside this
+    /// method) may commit the buffer on its own via an internal
+    /// `commitAndContinue` (confirmed empirically: a caller-side explicit
+    /// `.commit()` after this call crashed with `-[_MTLCommandBuffer
+    /// addCompletedHandler:]` asserting inside Metal's own commit
+    /// bookkeeping -- the signature of committing an already-committed
+    /// buffer). Only the `MPSCommandBuffer` wrapper used by this method can
+    /// tell whether that already happened, so only it may issue the actual
+    /// commit call. Pass a dedicated buffer this call owns
     /// exclusively (any preceding GPU preprocessing may already be encoded
-    /// on it) and commit it immediately afterward yourself.
+    /// on it) and `commit: true` for that same-frame, no-wait consumption;
+    /// pass a caller-owned `MPSCommandBuffer` other code still needs to
+    /// encode onto and `commit: false` to leave that persistent wrapper open
+    /// for its actual owner to commit. A raw shared `MTLCommandBuffer` is not
+    /// valid for the non-committing path because MPSGraph may replace its
+    /// underlying root buffer.
     ///
     /// No CPU wait is required before reading `outputBuffer` once the caller
     /// has committed `commandBuffer`: encode any further work that depends
@@ -240,7 +272,8 @@ public final class ZipDepthMPSGraph
     public func encode(
         inputBuffer: MTLBuffer,
         outputBuffer: MTLBuffer,
-        commandBuffer: MTLCommandBuffer
+        commandBuffer: MTLCommandBuffer,
+        commit: Bool = true
     ) throws -> Bool
     {
         guard commandBuffer.device === self.commandQueue.device else
@@ -255,6 +288,10 @@ public final class ZipDepthMPSGraph
         {
             throw ZipDepthError("Output buffer has \(outputBuffer.length) bytes; ZipDepth requires \(self.outputBufferLength).")
         }
+        let mpsCommandBuffer = try self.mpsCommandBuffer(
+            wrapping: commandBuffer,
+            commit: commit
+        )
         guard let slot = self.acquireSlotNonBlocking() else { return false }
 
         let inputData = MPSGraphTensorData(
@@ -268,28 +305,56 @@ public final class ZipDepthMPSGraph
             dataType: .float32
         )
 
-        // Must be registered before commandBuffer is committed, whenever
-        // that ends up happening -- Metal requires completion handlers to
-        // be added before commit.
-        commandBuffer.addCompletedHandler { [weak self] _ in
-            self?.releaseSlot(slot)
-        }
-
         // waitUntilCompleted = false avoids an extra implicit GPU wait
         // inside this call itself -- see the doc comment above for why no
         // CPU wait is needed afterward either.
         let executionDescriptor = MPSGraphExecutableExecutionDescriptor()
         executionDescriptor.waitUntilCompleted = false
 
-        let mpsCommandBuffer = MPSCommandBuffer(commandBuffer: commandBuffer)
         _ = self.executable.encode(
             to: mpsCommandBuffer,
             inputs: [inputData],
             results: [outputData],
             executionDescriptor: executionDescriptor
         )
-        // No commit here -- see the doc comment above; the caller owns that.
+        // Add this after MPSGraph finishes encoding. It may have called
+        // commitAndContinue while doing so; attaching to the persistent MPS
+        // wrapper here targets its current live root and therefore cannot
+        // release the slot before the graph's final segment completes.
+        mpsCommandBuffer.addCompletedHandler { [weak self] _ in
+            self?.releaseSlot(slot)
+        }
+        // Only the wrapper commits, and only when asked -- see the doc
+        // comment above for why the caller must never call commandBuffer
+        // .commit() itself.
+        if commit
+        {
+            mpsCommandBuffer.commit()
+        }
         return true
+    }
+
+    /// Reuse a caller-owned MPS wrapper when one is supplied. MPSGraph may
+    /// call `commitAndContinue()` while encoding; only that persistent wrapper
+    /// follows the replacement root command buffer. Creating a temporary
+    /// wrapper around a shared raw `MTLCommandBuffer` would leave its owner
+    /// holding the stale, possibly already committed root buffer.
+    private func mpsCommandBuffer(
+        wrapping commandBuffer: MTLCommandBuffer,
+        commit: Bool
+    ) throws -> MPSCommandBuffer
+    {
+        if let mpsCommandBuffer = commandBuffer as? MPSCommandBuffer
+        {
+            return mpsCommandBuffer
+        }
+        guard commit else
+        {
+            throw ZipDepthError(
+                "A non-committing ZipDepth encode requires a caller-owned MPSCommandBuffer."
+            )
+        }
+        return MPSCommandBuffer(commandBuffer: commandBuffer)
     }
 
     /// Convenience path for callers without an existing GPU preprocessing buffer.
