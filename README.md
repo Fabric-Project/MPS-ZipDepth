@@ -44,18 +44,20 @@ and height and contains nonnegative relative-depth values, not metric distance.
 
 The execution API mirrors MPS-MediaPipe:
 
-- `run(inputBuffer:)` executes synchronously and returns the depth values.
-- `submit(inputBuffer:commandBuffer:commit:completion:)` submits
-  asynchronously and returns `false` instead of blocking when every in-flight
-  slot is occupied.
-- `encode(inputBuffer:outputBuffer:commandBuffer:commit:)` is the
-  GPU-resident, no-CPU-readback path and has the same nonblocking behavior.
-  Both methods default `commit` to `true` and commit through an
-  `MPSCommandBuffer` wrapper. Pass `commit: false` only when the supplied
-  command buffer is already a caller-owned `MPSCommandBuffer`; MPSGraph may
-  call `commitAndContinue()`, and that persistent wrapper is what follows the
-  replacement root buffer safely. This allows preprocessing, inference, and
-  dependent postprocessing to remain ordered on the GPU without a CPU wait.
+- `run(inputBuffer:)` is the synchronous path: it creates its own command
+  buffer, commits it, waits, and returns the depth values.
+- `submit(inputBuffer:commandBuffer:completion:)` is the asynchronous path:
+  it encodes onto the caller's `MPSCommandBuffer` and delivers the depth
+  values to `completion` after the caller commits and the GPU finishes.
+- `encode(inputBuffer:outputBuffer:commandBuffer:)` is the GPU-resident,
+  no-CPU-readback path.
+
+`submit` and `encode` take the caller's own `MPSCommandBuffer` and never wrap,
+commit, or wait on it; the caller commits it. MPSGraph may call
+`commitAndContinue()` internally, and the caller's persistent wrapper is what
+follows the replacement root buffer, so preprocessing, inference, and
+dependent postprocessing stay ordered on the GPU without a CPU wait. Both
+return `false` instead of blocking when every in-flight slot is occupied.
 
 `prediction(rgb:)` remains as a convenience path for callers without a GPU
 preprocessing buffer. Resize/crop, color conversion, and NHWC packing should

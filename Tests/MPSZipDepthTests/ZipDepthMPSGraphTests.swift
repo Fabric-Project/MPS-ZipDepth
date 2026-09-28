@@ -60,11 +60,11 @@ import Testing
 @Test func submitsOfficialGraphAsynchronously() throws
 {
     guard let device = MTLCreateSystemDefaultDevice(),
-          let commandQueue = device.makeCommandQueue(),
-          let commandBuffer = commandQueue.makeCommandBuffer() else
+          let commandQueue = device.makeCommandQueue() else
     {
         return
     }
+    let commandBuffer = MPSCommandBuffer(from: commandQueue)
 
     let model = try ZipDepthMPSGraph(
         inputWidth: 32,
@@ -93,6 +93,7 @@ import Testing
         resultLock.unlock()
         completionSemaphore.signal()
     }
+    commandBuffer.commit()
 
     #expect(wasSubmitted)
     #expect(completionSemaphore.wait(timeout: .now() + 10) == .success)
@@ -130,11 +131,11 @@ import Testing
     ),
           let outputBuffer = device.makeBuffer(length: model.outputBufferLength, options: .storageModePrivate),
           let verifyBuffer = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared),
-          let encodeCommandBuffer = commandQueue.makeCommandBuffer(),
           let verifyCommandBuffer = commandQueue.makeCommandBuffer() else
     {
         return
     }
+    let encodeCommandBuffer = MPSCommandBuffer(from: commandQueue)
 
     let wasEncoded = try model.encode(
         inputBuffer: inputBuffer,
@@ -142,6 +143,7 @@ import Testing
         commandBuffer: encodeCommandBuffer
     )
     #expect(wasEncoded)
+    encodeCommandBuffer.commit()
     // Deliberately no wait here -- this is the exact gap under test.
 
     guard let blitEncoder = verifyCommandBuffer.makeBlitCommandEncoder() else
@@ -195,19 +197,17 @@ import Testing
           let outputBufferA = device.makeBuffer(length: model.outputBufferLength, options: .storageModePrivate),
           let outputBufferB = device.makeBuffer(length: model.outputBufferLength, options: .storageModePrivate),
           let verifyBufferA = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared),
-          let verifyBufferB = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared),
-          let rawCommandBufferA = commandQueue.makeCommandBuffer(),
-          let commandBufferB = commandQueue.makeCommandBuffer() else
+          let verifyBufferB = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared) else
     {
         return
     }
 
-    let commandBufferA = MPSCommandBuffer(commandBuffer: rawCommandBufferA)
+    let commandBufferA = MPSCommandBuffer(from: commandQueue)
+    let commandBufferB = MPSCommandBuffer(from: commandQueue)
     let firstWasEncoded = try model.encode(
         inputBuffer: inputBufferA,
         outputBuffer: outputBufferA,
-        commandBuffer: commandBufferA,
-        commit: false
+        commandBuffer: commandBufferA
     )
     let overlappingCallWasEncoded = try model.encode(
         inputBuffer: inputBufferB,
@@ -220,13 +220,14 @@ import Testing
     commandBufferA.commit()
     commandBufferA.waitUntilCompleted()
 
-    guard let retryCommandBuffer = commandQueue.makeCommandBuffer() else { return }
+    let retryCommandBuffer = MPSCommandBuffer(from: commandQueue)
     let retryWasEncoded = try model.encode(
         inputBuffer: inputBufferB,
         outputBuffer: outputBufferB,
         commandBuffer: retryCommandBuffer
     )
     #expect(retryWasEncoded)
+    retryCommandBuffer.commit()
 
     guard let verifyCommandBuffer = commandQueue.makeCommandBuffer(),
           let blitEncoder = verifyCommandBuffer.makeBlitCommandEncoder() else
@@ -256,13 +257,12 @@ import Testing
     }
 }
 
-/// By the time `encode(inputBuffer:outputBuffer:commandBuffer:)` returns, the
-/// raw `commandBuffer` object passed in is already committed -- callers must
-/// treat it as done and encode any further GPU work (postprocessing, etc.)
-/// on a fresh command buffer instead. This guards against a regression where
-/// a caller mistakenly keeps encoding onto (or calls `.commit()` on) the
-/// same reference and crashes on an already-committed command buffer.
-@Test func encodeCommitsItsCommandBufferAndOutputIsReadableFromAFreshOne() throws
+/// `encode()` never commits: the caller keeps encoding its own work onto the
+/// same `MPSCommandBuffer` after the model and commits it once. This guards
+/// the caller-owned command-buffer contract -- if the package committed
+/// internally, the caller's later encode or commit would hit an
+/// already-committed buffer.
+@Test func encodeLeavesTheCommandBufferForTheCallerToCommit() throws
 {
     guard let device = MTLCreateSystemDefaultDevice(),
           let commandQueue = device.makeCommandQueue() else
@@ -274,28 +274,30 @@ import Testing
 
     guard let inputBuffer = device.makeBuffer(length: model.inputBufferLength, options: .storageModePrivate),
           let outputBuffer = device.makeBuffer(length: model.outputBufferLength, options: .storageModePrivate),
-          let modelCommandBuffer = commandQueue.makeCommandBuffer() else
+          let verifyBuffer = device.makeBuffer(length: model.outputBufferLength, options: .storageModeShared) else
     {
         return
     }
 
-    // encode() commits `modelCommandBuffer` internally -- calling commit()
-    // again here would assert on an already-committed buffer.
-    try model.encode(inputBuffer: inputBuffer, outputBuffer: outputBuffer, commandBuffer: modelCommandBuffer)
-    modelCommandBuffer.waitUntilCompleted()
-    #expect(modelCommandBuffer.status == .completed)
-    #expect(modelCommandBuffer.error == nil)
+    let commandBuffer = MPSCommandBuffer(from: commandQueue)
+    let wasEncoded = try model.encode(inputBuffer: inputBuffer, outputBuffer: outputBuffer, commandBuffer: commandBuffer)
+    #expect(wasEncoded)
 
-    // A correct caller (mirroring ZipDepthNode) starts a new command buffer
-    // for postprocessing rather than reusing `modelCommandBuffer`.
-    guard let postprocessCommandBuffer = commandQueue.makeCommandBuffer(),
-          let postprocessEncoder = postprocessCommandBuffer.makeComputeCommandEncoder() else
+    // Caller-owned follow-up work on the same buffer, then one commit.
+    guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else
     {
         return
     }
-    postprocessEncoder.endEncoding()
-    postprocessCommandBuffer.commit()
-    postprocessCommandBuffer.waitUntilCompleted()
-    #expect(postprocessCommandBuffer.status == .completed)
-    #expect(postprocessCommandBuffer.error == nil)
+    blitEncoder.copy(from: outputBuffer, sourceOffset: 0, to: verifyBuffer, destinationOffset: 0, size: model.outputBufferLength)
+    blitEncoder.endEncoding()
+    commandBuffer.commit()
+    commandBuffer.waitUntilCompleted()
+
+    #expect(commandBuffer.status == .completed)
+    #expect(commandBuffer.error == nil)
+    let depth = Array(UnsafeBufferPointer(
+        start: verifyBuffer.contents().assumingMemoryBound(to: Float.self),
+        count: 32 * 32
+    ))
+    #expect(depth.allSatisfy { $0.isFinite })
 }
