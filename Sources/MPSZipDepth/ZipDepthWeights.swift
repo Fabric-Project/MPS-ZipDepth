@@ -34,6 +34,28 @@ final class ZipDepthWeights
 
     func floats(named name: String) throws -> [Float]
     {
+        let byteRange = try self.byteRange(named: name)
+        var values = [Float](repeating: 0, count: byteRange.count / MemoryLayout<Float>.stride)
+        values.withUnsafeMutableBytes { destination in
+            destination.copyBytes(from: self.data[byteRange])
+        }
+        return values
+    }
+
+    /// Copies the tensor's bytes straight out of the memory-mapped file into
+    /// the graph constant -- no intermediate `[Float]`.
+    func constant(_ graph: MPSGraph, named name: String) throws -> MPSGraphTensor
+    {
+        graph.constant(
+            self.data.subdata(in: try self.byteRange(named: name)),
+            shape: try self.shape(named: name).map(NSNumber.init(value:)),
+            dataType: .float32
+        )
+    }
+
+    /// The named float32 tensor's byte range within the mapped file.
+    private func byteRange(named name: String) throws -> Range<Data.Index>
+    {
         guard let entry = self.entries[name] else
         {
             throw ZipDepthError("Missing ZipDepth tensor '\(name)'.")
@@ -50,23 +72,7 @@ final class ZipDepthWeights
             throw ZipDepthError("ZipDepth tensor '\(name)' exceeds the weights file.")
         }
 
-        var values = [Float](repeating: 0, count: entry.count)
-        self.data.withUnsafeBytes { sourceBuffer in
-            guard let source = sourceBuffer.baseAddress?.advanced(by: byteOffset) else { return }
-            values.withUnsafeMutableBytes { destination in
-                destination.copyMemory(from: UnsafeRawBufferPointer(start: source, count: byteCount))
-            }
-        }
-        return values
-    }
-
-    func constant(_ graph: MPSGraph, named name: String) throws -> MPSGraphTensor
-    {
-        let values = try self.floats(named: name)
-        return graph.constant(
-            Data(bytes: values, count: values.count * MemoryLayout<Float>.stride),
-            shape: try self.shape(named: name).map(NSNumber.init(value:)),
-            dataType: .float32
-        )
+        let start = self.data.startIndex + byteOffset
+        return start..<(start + byteCount)
     }
 }
