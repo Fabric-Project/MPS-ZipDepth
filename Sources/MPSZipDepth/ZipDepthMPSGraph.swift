@@ -46,7 +46,8 @@ public final class ZipDepthMPSGraph
         inputHeight: Int,
         commandQueue: MTLCommandQueue,
         maxFramesInFlight: Int = 3,
-        precision: ZipDepthPrecision = .float32
+        precision: ZipDepthPrecision = .float32,
+        computeUnits: ZipDepthComputeUnits = .gpuAndNeuralEngine
     ) throws
     {
         guard inputWidth > 0, inputHeight > 0,
@@ -76,7 +77,8 @@ public final class ZipDepthMPSGraph
             weights: weights,
             inputWidth: inputWidth,
             inputHeight: inputHeight,
-            dataType: precision == .float16 ? .float16 : .float32
+            dataType: precision.activationDataType,
+            layerDataType: precision.layerDataType
         )
 
         let input = self.graph.placeholder(
@@ -89,7 +91,7 @@ public final class ZipDepthMPSGraph
 
         let inputType = MPSGraphShapedType(shape: input.shape ?? [], dataType: .float32)
         let descriptor = MPSGraphCompilationDescriptor()
-        descriptor.optimizationLevel = .level1
+        descriptor.optimizationLevel = computeUnits.optimizationLevel
         descriptor.waitForCompilationCompletion = true
         if #available(macOS 26.0, iOS 26.0, tvOS 26.0, visionOS 26.0, *)
         {
@@ -335,18 +337,23 @@ private struct GraphBuilder
     let weights: ZipDepthWeights
     let inputWidth: Int
     let inputHeight: Int
-    /// Every op and constant in the graph uses this type; see ZipDepthPrecision.
+    /// The type activations and their constants use; see ZipDepthPrecision.
     let dataType: MPSDataType
+    /// The type convolutions run in (float16 for mixedFloat16 and float16).
+    let layerDataType: MPSDataType
 
     func build(inputNHWC: MPSGraphTensor) throws -> MPSGraphTensor
     {
         let typedInput = inputNHWC.dataType == self.dataType ? inputNHWC : self.graph.cast(inputNHWC, to: self.dataType, name: nil)
         var input = self.graph.transpose(typedInput, permutation: [0, 3, 1, 2], name: "input_nchw")
         let mean = try self.broadcastConstant(named: "mean")
-        let standardDeviation = try self.broadcastConstant(named: "std")
-        input = self.graph.division(
+        // Multiply by 1/std rather than divide: MPSGraph places float16
+        // graphs on the Neural Engine, whose compiler rejects elementwise
+        // divides and silently falls the whole graph back to the GPU.
+        let inverseStandardDeviation = self.channelConstant(try self.weights.floats(named: "std").map { 1 / $0 })
+        input = self.graph.multiplication(
             self.graph.subtraction(input, mean, name: nil),
-            standardDeviation,
+            inverseStandardDeviation,
             name: "normalized_input"
         )
 
@@ -743,13 +750,16 @@ private struct GraphBuilder
         {
             throw ZipDepthError("Could not create a convolution descriptor for shape \(shape).")
         }
-        let weightTensor = self.constant(weights, shape: shape.map(NSNumber.init(value:)))
-        var output = self.graph.convolution2D(input, weights: weightTensor, descriptor: descriptor, name: nil)
+        // mixedFloat16 casts into and out of each convolution; float32 and
+        // float16 already match and add no casts.
+        let weightTensor = self.constant(weights, shape: shape.map(NSNumber.init(value:)), dataType: self.layerDataType)
+        let layerInput = input.dataType == self.layerDataType ? input : self.graph.cast(input, to: self.layerDataType, name: nil)
+        var output = self.graph.convolution2D(layerInput, weights: weightTensor, descriptor: descriptor, name: nil)
         if let bias
         {
-            output = self.graph.addition(output, self.channelConstant(bias), name: nil)
+            output = self.graph.addition(output, self.constant(bias, shape: [1, NSNumber(value: bias.count), 1, 1], dataType: self.layerDataType), name: nil)
         }
-        return output
+        return output.dataType == self.dataType ? output : self.graph.cast(output, to: self.dataType, name: nil)
     }
 
     /// Folds the inference batch norm at `prefix` into OIHW conv `weights`:
@@ -882,12 +892,14 @@ private struct GraphBuilder
         self.constant([value], shape: [1])
     }
 
-    /// A constant in the graph's `dataType`. Built as float32 and cast in the
-    /// graph when needed -- MPSGraph folds a cast of a constant at compile
-    /// time -- rather than with Swift's `Float16`, which Intel Macs lack.
-    private func constant(_ values: [Float], shape: [NSNumber]) -> MPSGraphTensor
+    /// A constant in `dataType` (the graph's activation type by default).
+    /// Built as float32 and cast in the graph when needed -- MPSGraph folds a
+    /// cast of a constant at compile time -- rather than with Swift's
+    /// `Float16`, which Intel Macs lack.
+    private func constant(_ values: [Float], shape: [NSNumber], dataType: MPSDataType? = nil) -> MPSGraphTensor
     {
+        let targetType = dataType ?? self.dataType
         let float32Constant = self.graph.constant(Data(bytes: values, count: values.count * MemoryLayout<Float>.stride), shape: shape, dataType: .float32)
-        return self.dataType == .float32 ? float32Constant : self.graph.cast(float32Constant, to: self.dataType, name: nil)
+        return targetType == .float32 ? float32Constant : self.graph.cast(float32Constant, to: targetType, name: nil)
     }
 }

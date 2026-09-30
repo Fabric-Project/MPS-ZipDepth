@@ -308,8 +308,8 @@ import Testing
 /// against `Fixtures/reference_depth_384.bin`, recorded from the unfolded
 /// graph. Record or re-record it deliberately with
 /// `ZIPDEPTH_WRITE_REFERENCE=1 swift test --filter foldedGraphMatchesReference`.
-/// `ZIPDEPTH_PRECISION=float16` compares the float16 graph against the same
-/// float32 reference, gated at the float16 bar instead of the exact one.
+/// `ZIPDEPTH_PRECISION=mixedFloat16` or `float16` compares that tier against
+/// the same float32 reference, gated at the float16 bar instead of the exact one.
 @Test func foldedGraphMatchesReference() throws
 {
     guard let device = MTLCreateSystemDefaultDevice(),
@@ -432,5 +432,10 @@ import Testing
 
 private func zipDepthTestPrecision() -> ZipDepthPrecision
 {
-    ProcessInfo.processInfo.environment["ZIPDEPTH_PRECISION"] == "float16" ? .float16 : .float32
+    switch ProcessInfo.processInfo.environment["ZIPDEPTH_PRECISION"]
+    {
+    case "mixedFloat16": return .mixedFloat16
+    case "float16": return .float16
+    default: return .float32
+    }
 }
